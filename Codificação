@@ -1,0 +1,86 @@
+1. Pré-requisitos:
+pip install azure-search-documents azure-identity azure-storage-blob
+
+2. Autenticação e variáveis:
+
+from azure.identity import DefaultAzureCredential
+from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents.indexes.models import SearchIndex
+from azure.storage.blob import BlobServiceClient
+from azure.core.credentials import AzureKeyCredential
+
+endpoint = "https://<SEU-NOME-DE-PESQUISA>.search.windows.net"
+admin_key = "<CHAVE-ADMIN-SEARCH>"
+index_name = "avaliacoes-clientes"
+credential = AzureKeyCredential(admin_key)
+
+3. Criar o índice de busca:
+
+from azure.search.documents.indexes.models import (
+    SearchField, SearchFieldDataType, SimpleField, SearchableField
+)
+
+fields = [
+    SimpleField(name="id", type=SearchFieldDataType.String, key=True),
+    SearchableField(name="comentario", type=SearchFieldDataType.String, analyzer_name="pt.Microsoft"),
+    SimpleField(name="cliente", type=SearchFieldDataType.String),
+    SimpleField(name="data", type=SearchFieldDataType.DateTimeOffset),
+    SimpleField(name="sentimento", type=SearchFieldDataType.String),
+    SearchableField(name="frases_chave", type=SearchFieldDataType.Collection(SearchFieldDataType.String)),
+    SearchableField(name="entidades", type=SearchFieldDataType.Collection(SearchFieldDataType.String))
+]
+
+index = SearchIndex(name=index_name, fields=fields)
+client = SearchIndexClient(endpoint=endpoint, credential=credential)
+client.create_index(index)
+
+4. Enviar os dados para o índice:
+
+from azure.search.documents import SearchClient
+
+search_client = SearchClient(endpoint, index_name, credential=credential)
+
+documentos = [
+    {
+        "id": "1",
+        "comentario": "O café estava excelente, mas o atendimento demorou um pouco.",
+        "cliente": "João",
+        "data": "2024-01-15T12:00:00Z",
+        "sentimento": "misto",
+        "frases_chave": ["café excelente", "atendimento demorou"],
+        "entidades": ["produto", "serviço"]
+    },
+    {
+        "id": "2",
+        "comentario": "Fui muito bem atendido. Voltarei com certeza!",
+        "cliente": "Maria",
+        "data": "2024-02-10T09:00:00Z",
+        "sentimento": "positivo",
+        "frases_chave": ["bem atendido"],
+        "entidades": ["atendimento"]
+    }
+]
+
+result = search_client.upload_documents(documents=documentos)
+print(f"Documentos enviados: {result[0].succeeded}")
+
+5. Consultar os dados com NLP:
+
+resultados = search_client.search("excelente atendimento")
+
+for r in resultados:
+    print(f"Cliente: {r['cliente']}")
+    print(f"Comentário: {r['comentario']}")
+    print(f"Sentimento: {r['sentimento']}")
+    print(f"Frases-chave: {r['frases_chave']}")
+    print("—" * 30)
+"""
+
+# Caminho do arquivo .txt
+txt_path_code = "/mnt/data/mineracao_conhecimento_azure_ai_search_com_codigo.txt"
+
+# Salvar em arquivo
+with open(txt_path_code, "w", encoding="utf-8") as f:
+    f.write(full_txt_content)
+
+txt_path_code
